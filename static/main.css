@@ -1,0 +1,238 @@
+    html {
+       font-family: "San Francisco Text", sans-serif;
+    }
+    body {
+        background: #cccccc;
+    }
+    a {
+       color: #8888cc;
+       text-decoration: none;
+    }
+    #map {
+      display: inline-block;
+      height: 95vh;
+      width: 60vw;
+      z-index: 10;
+      vertical-align: top;
+    }
+    #databox {
+      vertical-align: top;
+      display: inline-block;
+      width: 35vw;
+      padding: 20px;
+      background-color: #cceeee;
+      height: 100%;
+    }
+   .controls {
+      margin: 10px;
+      gap: 10px;
+      width: 100%;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    #load {
+      padding: 5px 10px;
+      background-color: #a5156e;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #load:hover {
+      opacity: 90%;
+    }
+    label {
+      padding: 5px 1px;
+    }
+    .tooltip-button {
+      float: right;
+      position: relative;
+      z-index:100;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 16px;
+      cursor: pointer;
+      text-align: center;
+      line-height: 30px;
+    }
+
+    /* Tooltip container */
+    .tooltip-button .tooltip {
+      visibility: hidden;
+      background-color: #666666;
+      color: #eeeeff;
+      text-align: left;
+      border-radius: 5px;
+      padding: 17px 20px;
+      position: fixed; /* Fixed to appear relative to the viewport */
+      top: 45%; /* Center vertically */
+      left: 50%; /* Center horizontally */
+      transform: translate(-50%, -50%); /* Center the tooltip exactly */
+      z-index: 1000; /* Ensure it appears on top */ 
+      font-size: 1.7vw;
+      line-height: 2.1vw;
+      width: 70vw;
+    }
+
+    /* Show the tooltip on hover */
+    .tooltip-button:hover .tooltip {
+      visibility: visible;
+    }
+
+    #aftercontent-container {
+      position: fixed;
+      bottom: 0;
+      right: 60px;
+      width: 100vw;
+      max-width: calc(100vw - 80px);
+      transition: transform 0.3s ease-in-out;
+      transform: translateY(100%);
+      z-index: 1000;
+    }
+
+    #aftercontent-container.open {
+      transform: translateY(0);
+    }
+
+    /* The tab that sticks out */
+    .tab-button {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 20px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      transition: background 0.2s;
+    }
+
+    .tab-button:hover {
+      background: #357abd;
+    }
+
+    /* The content panel */
+    #aftercontent {
+      background: white;
+      border: 2px solid #4a90e2;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      padding: 20px;
+      box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    #aftercontent h3 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    #aftercontent p {
+      color: #666;
+      line-height: 1.6;
+    }
+
+    #databox h3 {
+        margin-bottom: 5px;
+    }
+    #databox .date {
+        margin-bottom: 7px;
+        display: block;
+        font-size: 10pt;
+        color: #999999;
+    }
+    #databox .cd {
+        font-size: 12pt;
+        color: #333333;
+    }
+    #databox .mover, .second {
+        display: block;
+        font-size: 12pt;
+        margin-bottom:5px;
+    }
+    #databox .exp {
+        font-size: 11pt; 
+        margin-bottom: 6px;
+        display: block;
+        color: #666666;
+    }
+    #databox .active {
+        font-size: 14pt;
+        font-weight: bold;
+        color: #cc1111;
+    }
+    #databox .inactive {
+        font-size: 14pt;
+        font-weight: bold;
+        color: #553333;
+    }
+    .YES {
+        font-weight: bold;
+        color: blue;
+    }
+    .NO {
+        font-weight: bold;
+        color:black;
+    }
+    .ABSENT {
+        color: #aaaaaa;
+    }
+    .arrestlabel {
+
+    }
+
+
+#overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Modal container */
+#modal {
+  position: relative;
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 90%;
+  max-height: 90%;
+  overflow: auto;
+}
+
+/* Table styling */
+#modal table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+#modal th,
+#modal td {
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: left;
+}
+
+#modal th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+#modal tr:hover {
+  background-color: #f5f5f5;
+}

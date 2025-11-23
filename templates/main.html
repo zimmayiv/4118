@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expired zone arrests in Council District 1, 2023-2024</title>
+  <!-- Leaflet CSS -->
+  <link rel="icon" type="image/x-icon" href="./static/favicon.ico">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"
+  />
+  <link rel="stylesheet" href="./static/main.css">
+</head>
+<body>
+  <div id="map"></div>
+  <div id="databox"><p>No zone selected.</p></div>
+  <div id="aftercontent-container">
+    <button class="tab-button" id="toggle-tab" aria-label="Toggle help panel">?</button>
+      <div id="aftercontent">
+      <h3>About</h3>
+      <p>
+      This <b>only</b> shows special 41.18 enforcement zones passed by City Council resolution; automatic enforcement zones which do not require council action are not included. Arrest data covers the period 2020-2024; 41.18 zones passed up through October 2025 are displayed on the map. All data is sourced from the <a href="https://data.lacity.org/Public-Safety/Arrest-Data-from-2020-to-Present/amvf-fr72">Los Angeles Open Data Portal</a> and <a href="https://cityclerk.lacity.org/lacityclerkconnect/">LA City Clerk website</a>. Arrest data starting in 2024 may be missing many records; see <a href="https://laist.com/news/lapd-records-data-refusal">this article</a> for why. Raw data: <a href="/static/zones_geocoded_final.csv">enforcement zones</a>, <a href="/static/202024arrests4118.csv">arrests</a>
+    </p>
+
+    <p>
+      Disclaimer: all data was scraped and geocoded using automated tools with very little manual labor disposable; thorough human verification was not possible. Thus, it is possible there are mistakes; please notify if you find glaring errors.
+    </p>
+    </div>
+  </div>
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+    const container = document.getElementById('aftercontent-container');
+    const toggleBtn = document.getElementById('toggle-tab');
+
+    toggleBtn.addEventListener('click', () => {
+      container.classList.toggle('open');
+    });
+
+    // BASE MAP SCRIPT START
+    // Initialize the map
+    const map = L.map('map').setView([34.065294, -118.2668108], 10);
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors',
+    }).addTo(map);
+
+    /*
+    fetch("/geo/CD.geojson")
+      .then(res => res.json())
+      .then(data => {
+	// take only the first feature
+	let district1 = {
+	  type: "FeatureCollection",
+	  features: [data.features[0]]
+	};
+
+      });
+    */
+
+    function replace_quotes(s) {
+        return s.replace(/['`]/g, '"');
+    }
+
+
+    function formatName(name) {
+      if (name == '(VACANT) (VACANT)' || name == '(VACANT)') {
+          return '[Vacant]';
+      }
+      if (name == 'TIM MCOSKER') return 'Tim McOsker';
+      return name.toLowerCase().split(' ').map(word => {
+	// Handle names with apostrophes (e.g., O'Farrell, D'Angelo)
+	if (word.includes("'")) {
+	  return word.split("'").map(part => 
+	    part.charAt(0).toUpperCase() + part.slice(1)
+	  ).join("'");
+	}
+	// Handle names with hyphens (e.g., Smith-Jones)
+	if (word.includes("-")) {
+	  return word.split("-").map(part => 
+	    part.charAt(0).toUpperCase() + part.slice(1)
+	  ).join("-");
+	}
+	// Standard capitalization
+	return word.charAt(0).toUpperCase() + word.slice(1);
+      }).join(' ');
+    }
+
+    function jsonToTable(data) {
+      if (!data || data.length === 0) return '';
+      
+      // Get headers from first object's keys
+      const headers = Object.keys(data[0]);
+      
+      // Create table HTML
+      let html = '<table class="arrests">';
+      
+      // Add header row
+      html += '<tr>';
+      headers.forEach(header => {
+	html += `<th>${header}</th>`;
+      });
+      html += '</tr>';
+      
+      // Add data rows
+      data.forEach(row => {
+	html += '<tr>';
+	headers.forEach(header => {
+	  html += `<td>${row[header] !== null && row[header] !== undefined ? row[header] : ''}</td>`;
+	});
+	html += '</tr>';
+      });
+      
+      html += '</table>';
+      return html;
+    }
+
+    function fillPanel(row) {
+      let locash = row['Location'].replace(' -', ' - ').replace('- ', ' - ');
+      let panelHtml = `<h3><a href="${row['URL']}" target="_blank">${row['Number']}</a> — ${locash} <span class='cd'>(Council District ${row['Council District']})</span></h3>`;
+      panelHtml += "<span class='date'>(Proposed " + row['Date Received'] + ", last council action " + row['Last Changed Date'] + ")</span>";
+      let expDate = new Date(row['Expiration Date']);
+      let expStr = expDate.toLocaleDateString('en-US', {
+	  year: 'numeric',
+	  month: 'long',
+	  day: 'numeric'
+	});
+      let today = new Date();
+      if (expDate > today) {
+          panelHtml += "<span class='exp'><span class='active'>Active</span> (expires " + expStr + ")</span>";
+      }
+      else {
+          panelHtml += "<span class='exp'><span class='inactive'>Expired</span> (since " + expStr + ")</span>";
+      }
+      panelHtml += "<span class='mover'>Proposed by: <b>" + formatName(row['Mover']) + "</b></span>";
+      panelHtml += "<span class='second'>Seconded by: <b>" + formatName(row['Second']) + "</b></span>";
+      panelHtml += "Council votes (district in parentheses): <ul class='votes'>";
+      try {
+          let votes = JSON.parse(row['Votes']);
+          for (v in votes) {
+              panelHtml += '<li>' + formatName(votes[v]['Member Name']) + ' (' + votes[v]['CD'] + '): <span class="' + votes[v]['Vote'] + '">' + votes[v]['Vote'] + '</span></li>';
+          }
+      }
+      catch {
+          console.log(row['Votes']);
+      }
+      panelHtml += '</ul>'
+      let arrestsUrl = "./arrests?geo=" + replace_quotes(row['geojson']);
+      fetch(arrestsUrl).then(response => response.json())
+      .then(data => {
+          panelHtml += "<span class='arrestlabel'><b>" + data.length.toString() + "</b> arrest(s) under 41.18 recorded here between 2020 and 2024";
+          if (data.length > 0) { panelHtml += ": <a href='javascript:showTable();'><b>show</b></a></span>"; }
+          panelHtml += "<div id='overlay' style='display:none;'><div id='modal'>" + jsonToTable(data) + "</div></div>";      
+          const databox = document.getElementById('databox');
+          databox.innerHTML = panelHtml;
+          document.getElementById('overlay').addEventListener('click', function(e) {
+	    if (e.target === this) {
+	      this.style.display = 'none';
+	    }
+	  });
+      });
+
+    }
+    function showTable() {
+	document.getElementById('overlay').style.display = 'flex';
+    }
+
+    Papa.parse("./static/zones_geocoded_final.csv", {
+        download: true,
+        header: true,
+        complete: function(results) {
+            var rows = results.data;
+		rows.forEach(function(row) {
+                  let geo = JSON.parse(row['geojson'].replace(/'/g, '"'));
+                  let exp = new Date(row['Expiration Date']);
+                  let today = new Date();
+                  let color = "";
+                  if (exp > today) { color = "red"; }  else { color = "gray"; }
+                  if (geo.length == 1) {
+		      // parse lat/lon as numbers
+		      let lat = parseFloat(geo[0]["lat"]);
+		      let lon = parseFloat(geo[0]["lng"]);
+
+		      // add marker
+		      let redCirc = L.circle([lat, lon], {
+			  radius: 100,
+			  fillColor: color,
+			  color: color,
+			  weight: 1,
+			  opacity: 1,
+			  fillOpacity: 0.6
+                      });
+		      redCirc.on({'click': function(e) { fillPanel(row); } });
+		      redCirc.addTo(map);
+                  } else {
+		      let coordinates = geo.map(point => [
+			  parseFloat(point["lat"]),
+			  parseFloat(point["lng"])
+		      ]);
+		      
+		      let line = L.polyline(coordinates, {
+			  color: color,
+			  weight: 3,
+			  opacity: 1
+		      });
+		      
+		      line.on({'click': function(e) { fillPanel(row); } });
+		      line.addTo(map);
+                  }
+		});
+
+        }
+    });
+  </script>
+</body>
+</html>
+
