@@ -1,9 +1,13 @@
 from flask import Flask, render_template, request, jsonify
 import csv, math, json
+from datetime import datetime
 import pandas as pd
 
 app = Flask(__name__)
 
+@app.template_filter('formatdate')
+def formatdate_filter(date_string):
+    return datetime.strptime(date_string, '%Y-%m-%d').strftime('%B %d, %Y')
 
 def haversine_distance(lat1, lon1, lat2, lon2):
     """
@@ -130,6 +134,78 @@ def get_arrests():
         return jsonify({'error': 'CSV file not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+members = [{'Member Name': 'Bob Blumenfield', 'CD': '3', 'Start': '2013-07-01'},
+{'Member Name': 'Mike Bonin', 'CD': '11', 'Start': '2013-07-01', 'End': '2022-12-12'},
+{'Member Name': 'Joe Buscaino', 'CD': '15', 'Start': '2012-07-01', 'End': '2022-12-12'},
+{'Member Name': 'Gilbert A. Cedillo', 'CD': '1', 'Start': '2013-07-01', 'End': '2022-12-12'},
+{'Member Name': 'Kevin DeLeon', 'CD': '14', 'Start': '2020-10-15', 'End': '2024-12-09'},
+{'Member Name': 'Marqueece Harris-Dawson', 'CD': '8', 'Start': '2015-07-01'},
+{'Member Name': 'Paul Koretz', 'CD': '5', 'Start': '2009-07-01', 'End': '2022-12-09'},
+{'Member Name': 'Paul Krekorian', 'CD': '2', 'Start': '2010-05-01', 'End': '2024-12-09'},
+{'Member Name': 'John Lee', 'CD': '12', 'Start': '2019-08-30'},
+{'Member Name': 'Nury Martinez', 'CD': '6', 'Start': '2013-08-09', 'End': '2022-10-12'},
+{'Member Name': "Mitch O'Farrell", 'CD': '13', 'Start': '2013-07-01', 'End': '2022-12-12'},
+{'Member Name': 'Curren D. Price', 'CD': '9', 'Start': '2013-07-01'},
+{'Member Name': 'Nithya Raman', 'CD': '4', 'Start': '2020-12-14'},
+{'Member Name': 'Mark Ridley-Thomas', 'CD': '10', 'Start': '2020-12-14', 'End': '2022-03-17'},
+{'Member Name': 'Monica Rodriguez', 'CD': '7', 'Start': '2017-07-01'},
+{'Member Name': 'Herb Wesson', 'CD': '10', 'Start': '2022-03-17', 'End': '2022-08-25'},
+{'Member Name': 'Heather Hutt', 'CD': '10', 'Start': '2023-04-11'},
+{'Member Name': 'Eunisses Hernandez', 'CD': '1', 'Start': '2022-12-12'},
+{'Member Name': 'Tim McOsker', 'CD': '15', 'Start': '2022-12-12'},
+{'Member Name': 'Traci Park', 'CD': '11', 'Start': '2022-12-12'},
+{'Member Name': 'Hugo Soto-Martinez', 'CD': '13', 'Start': '2022-12-12'},
+{'Member Name': 'Katy Yaroslavsky', 'CD': '5', 'Start': '2022-12-12'},
+{'Member Name': 'Imelda Padilla', 'CD': '6', 'Start': '2023-08-01'},
+{'Member Name': 'Ysabel Jurado', 'CD': '14', 'Start': '2024-12-09'},
+{'Member Name': 'Adrin Nazarian', 'CD': '2', 'Start': '2024-12-09'}]
+
+def checkZones(row, zones=[]):
+    flag = False
+    lat = row['LAT']
+    lon = row['LON']
+    for z in zones:
+        s = json.loads(z.replace("'",'"'))
+        if len(s) == 1:
+            x = s[0]['lat']
+            y = s[0]['lng']
+            flag = flag or haversine_distance(x,y,lat,lon) <= 100
+        else:
+            for i in range(1,len(s)):
+                x1 = s[i-1]['lat']
+                y1 = s[i-1]['lng']
+                x2 = s[i]['lat']
+                y2 = s[i]['lng']
+                flag = flag or point_to_line_distance(row['LAT'], row['LON'], x1, y1, x2, y2) < 100
+    return flag
+
+@app.route('/people/<name>')
+def councilmember(name):
+    e = [m for m in members if m['Member Name'].upper() == name]
+    if len(e) == 0:
+        return 'No such councilperson in record.'
+    else:
+        df_zones = pd.read_csv('./static/zones_geocoded_final.csv')
+        df_4118 = pd.read_csv('./static/202024arrests4118.csv')
+        no_count = 0
+        yes_count = 0
+        for votes_str in df_zones['Votes']:
+            try:
+                votes_list = json.loads(votes_str)
+                yes_count += sum(1 for vote in votes_list if vote.get('Member Name') == name and vote.get('Vote') == 'YES')
+                no_count += sum(1 for vote in votes_list if vote.get('Member Name') == name and vote.get('Vote') == 'NO')
+            except:
+                continue
+        df_mover = df_zones[df_zones['Mover'] == name]
+        df_arrests = df_4118[df_4118.apply(checkZones, axis=1, zones=list(df_mover['geojson']))]
+        arrest_count = df_arrests.shape[0]
+        mover_count = df_mover.shape[0]
+        second_count = df_zones[df_zones['Second'] == name].shape[0]
+        zones = list(df_mover['geojson'])
+        zones = [json.loads(z.replace("'",'"')) for z in zones]
+        return render_template('people.html', yes=round(yes_count/(yes_count+no_count)*100, 1), mover=mover_count, second=second_count, arrests=arrest_count, cdata=e[0], zones=zones)
+
 
 @app.route('/')
 def home():

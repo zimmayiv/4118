@@ -5,8 +5,11 @@
         background: #cccccc;
     }
     a {
-       color: #8888cc;
+       color: #6666cc;
        text-decoration: none;
+    }
+    a:hover {
+        color: #8888cc;
     }
     #map {
       display: inline-block;
@@ -15,6 +18,7 @@
       z-index: 10;
       vertical-align: top;
     }
+    #textcont { float:left; }
     #databox {
       vertical-align: top;
       display: inline-block;

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>41.18: {{cdata['Member Name']}}</title>
+  <!-- Leaflet CSS -->
+  <link rel="icon" type="image/x-icon" href="./static/favicon.ico">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"
+  />
+  <link rel="stylesheet" href="../static/main.css">
+</head>
+<body>
+  <div id="textcont">
+      <h2>{{cdata['Member Name']}}</h2>
+      <p>Council district: <b>{{cdata['CD']}}</b></p>
+      <p>Took office: <b>{{cdata['Start'] | formatdate}}</b></p>
+      {% if 'End' in cdata %}
+      <p>Left office: <b>{{ cdata['End'] | formatdate}}</b></p>
+      {% endif %}
+      <p>Primary mover on <b>{{mover}}</b> zones, resulting in <b>{{arrests}}</b> recorded arrests, and second on <b>{{second}}</b> zones. Voted yes <b>{{yes}}</b>% of the time.</p>
+  </div>
+  <div id="map" style="width:30vw;height:70vh;float:right;"></div>
+  <div id="aftercontent-container">
+    <button class="tab-button" id="toggle-tab" aria-label="Toggle help panel">?</button>
+      <div id="aftercontent">
+      <h3>About</h3>
+      <p>
+      This <b>only</b> shows special 41.18 enforcement zones passed by City Council resolution; automatic enforcement zones which do not require council action are not included. Arrest data covers the period 2020-2024; 41.18 zones passed up through October 2025 are displayed on the map. All data is sourced from the <a href="https://data.lacity.org/Public-Safety/Arrest-Data-from-2020-to-Present/amvf-fr72">Los Angeles Open Data Portal</a> and <a href="https://cityclerk.lacity.org/lacityclerkconnect/">LA City Clerk website</a>. Arrest data starting in 2024 may be missing many records; see <a href="https://laist.com/news/lapd-records-data-refusal">this article</a> for why. Raw data: <a href="/static/zones_geocoded_final.csv">enforcement zones</a>, <a href="/static/202024arrests4118.csv">arrests</a>
+    </p>
+
+    <p>
+      Disclaimer: all data was scraped and geocoded using automated tools with very little manual labor disposable; thorough human verification was not possible. Thus, it is possible there are mistakes; please notify if you find glaring errors.
+    </p>
+    </div>
+  </div>
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+    const container = document.getElementById('aftercontent-container');
+    const toggleBtn = document.getElementById('toggle-tab');
+
+    toggleBtn.addEventListener('click', () => {
+      container.classList.toggle('open');
+    });
+
+    // BASE MAP SCRIPT START
+    // Initialize the map
+    const map = L.map('map').setView([34.065294, -118.2668108], 9);
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors',
+    }).addTo(map);
+
+    fetch("../static/CD.geojson")
+      .then(res => res.json())
+      .then(data => {
+	let district1 = {
+	  type: "FeatureCollection",
+	  features: [data.features[{{cdata['CD']}}-1]]
+	};
+        let cdLayer = L.geoJSON(district1).addTo(map);
+        map.fitBounds(cdLayer.getBounds());
+      });
+	{% for zone in zones %}
+	  {% if zone|length == 1 %}
+	    // Single point - draw circle
+	    L.circle([{{ zone[0]['lat'] }}, {{ zone[0]['lng'] }}], {
+	      color: 'red',
+	      fillColor: 'red',
+	      fillOpacity: 0.5,
+	      radius: 100
+	    }).addTo(map);
+	  {% else %}
+	    // Multiple points - draw line
+	    L.polyline([
+	      {% for point in zone %}
+		[{{ point['lat'] }}, {{ point['lng'] }}]{% if not loop.last %},{% endif %}
+	      {% endfor %}
+	    ], {
+	      color: 'red'
+	    }).addTo(map);
+	  {% endif %}
+	{% endfor %}
+
+  </script>
+</body>
+</html>
+
