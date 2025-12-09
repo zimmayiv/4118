@@ -27,7 +27,7 @@
       {% endif %}
       <p>Primary mover on <b>{{mover}}</b> zones, resulting in <b>{{arrests}}</b> recorded arrests, and second on <b>{{second}}</b> zones. Voted yes <b>{{yes}}</b>% of the time.</p>
   </div>
-  <div id="map" style="width:30vw;height:70vh;float:right;"></div>
+  <div id="pplmap"></div>
   <div id="aftercontent-container">
     <button class="tab-button" id="toggle-tab" aria-label="Toggle help panel">?</button>
       <div id="aftercontent">
@@ -58,7 +58,7 @@
 
     // BASE MAP SCRIPT START
     // Initialize the map
-    const map = L.map('map').setView([34.065294, -118.2668108], 9);
+    const map = L.map('pplmap').setView([34.065294, -118.2668108], 9);
 
     // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 @app.template_filter('formatdate')
 def formatdate_filter(date_string):
-    return datetime.strptime(date_string, '%Y-%m-%d').strftime('%B %d, %Y')
+    return datetime.strptime(date_string, '%Y-%m-%d').strftime('%B %-d, %Y')
 
 def haversine_distance(lat1, lon1, lat2, lon2):
     """
